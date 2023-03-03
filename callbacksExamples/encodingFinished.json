@@ -1,0 +1,334 @@
+{
+    "notification_event": [
+        "ENCODING_FINISHED"
+    ],
+    "original_id": 926259,
+    "id": "1jhvl2uqxxx",
+    "name": "202303xxIARxx",
+    "description": null,
+    "validated": false,
+    "published": true,
+    "streams": [
+        "audio",
+        "video"
+    ],
+    "shot_boundaries": [],
+    "duration": 2585.94,
+    "key_restricted": true,
+    "ip_restricted": false,
+    "country_restricted": false,
+    "state": 96,
+    "progress": 56,
+    "created_at": "2023-03-16T14:35:41+00:00",
+    "updated_at": "2023-03-16T14:36:04+00:00",
+    "collected_at": "2023-03-16T14:36:04+00:00",
+    "published_at": null,
+    "discarded_at": null,
+    "deleted_at": null,
+    "encoded_medias": [
+        {
+            "file": {
+                "id": "1jhvl2uxx",
+                "size": 164787375,
+                "checksum": "c4073f6fa3xxxdf90a8f086cead1f6a6293b0aaaf9f747ae5780fa",
+                "mimetype": "video/mp4",
+                "name": null,
+                "extension": "mp4",
+                "on_filesystem": true
+            },
+            "id": "1jhvl2uxxxa8xx",
+            "encoding_stream": {
+                "id": "1jhvl2xxexx",
+                "video_bitrate": 800000,
+                "video_width": 852,
+                "video_height": 480,
+                "audio_bitrate": 64000,
+                "audio_sampling": 44100,
+                "encoding": {
+                    "id": "1jhvl2uxxxe6g",
+                    "container": "mp4",
+                    "name": "mp4",
+                    "copy": false,
+                    "video_codec": "h264",
+                    "video_aspect": "letterbox",
+                    "video_fps": null,
+                    "audio_codec": "he_aac",
+                    "audio_channel": "stereo_2_0",
+                    "preset": null,
+                    "owned": true,
+                    "created_at": "2021-07-26T10:13:22+00:00",
+                    "updated_at": "2021-07-26T10:13:22+00:00",
+                    "deleted_at": null
+                },
+                "created_at": "2021-07-26T10:13:22+00:00",
+                "updated_at": "2021-07-26T10:13:22+00:00",
+                "deleted_at": null
+            },
+            "initial": true,
+            "mimetype": "video/mp4",
+            "size": 164787375,
+            "size_human_readable": "164.79MB"
+        },
+        {
+            "file": {
+                "size": 0,
+                "checksum": null,
+                "mimetype": "application/octet-stream",
+                "name": null,
+                "extension": null,
+                "on_filesystem": false
+            },
+            "id": "1jhvlxxia8xx",
+            "encoding_stream": {
+                "id": "1jhvlxxxzwexx",
+                "video_bitrate": 350000,
+                "video_width": 640,
+                "video_height": 360,
+                "audio_bitrate": 48000,
+                "audio_sampling": 44100,
+                "encoding": {
+                    "id": "1jhvl2xxxxe6g",
+                    "container": "mp4",
+                    "name": "mp4",
+                    "copy": false,
+                    "video_codec": "h264",
+                    "video_aspect": "letterbox",
+                    "video_fps": null,
+                    "audio_codec": "he_aac",
+                    "audio_channel": "stereo_2_0",
+                    "preset": null,
+                    "owned": true,
+                    "created_at": "2021-07-26T10:13:22+00:00",
+                    "updated_at": "2021-07-26T10:13:22+00:00",
+                    "deleted_at": null
+                },
+                "created_at": "2021-07-26T10:13:22+00:00",
+                "updated_at": "2021-07-26T10:13:22+00:00",
+                "deleted_at": null
+            },
+            "initial": true,
+            "mimetype": "application/octet-stream",
+            "size": 0,
+            "size_human_readable": "0B"
+        },
+        {
+            "file": {
+                "size": 0,
+                "checksum": null,
+                "mimetype": "application/octet-stream",
+                "name": null,
+                "extension": null,
+                "on_filesystem": false
+            },
+            "id": "1jhvxxxxxg",
+            "encoding_stream": {
+                "id": "1jhvxxxxvnxx",
+                "video_bitrate": 1800000,
+                "video_width": null,
+                "video_height": 720,
+                "audio_bitrate": 128000,
+                "audio_sampling": 48000,
+                "encoding": {
+                    "id": "1jhvl2upzxxx",
+                    "container": "mp4",
+                    "name": "mp4",
+                    "copy": false,
+                    "video_codec": "h264",
+                    "video_aspect": "letterbox",
+                    "video_fps": null,
+                    "audio_codec": "he_aac",
+                    "audio_channel": "stereo_2_0",
+                    "preset": null,
+                    "owned": true,
+                    "created_at": "2021-07-26T10:13:22+00:00",
+                    "updated_at": "2021-07-26T10:13:22+00:00",
+                    "deleted_at": null
+                },
+                "created_at": "1983-02-23T00:00:00+00:00",
+                "updated_at": "1983-02-23T00:00:00+00:00",
+                "deleted_at": null
+            },
+            "initial": true,
+            "mimetype": "application/octet-stream",
+            "size": 0,
+            "size_human_readable": "0B"
+        },
+        {
+            "file": {
+                "size": 0,
+                "checksum": null,
+                "mimetype": "application/octet-stream",
+                "name": null,
+                "extension": null,
+                "on_filesystem": false
+            },
+            "id": "1jhvl2uqiaxxx",
+            "encoding_stream": {
+                "id": "1jhvl2uqgvxxx",
+                "video_bitrate": 4000000,
+                "video_width": null,
+                "video_height": 1080,
+                "audio_bitrate": 192000,
+                "audio_sampling": 48000,
+                "encoding": {
+                    "id": "1jhvl2upzwxxx",
+                    "container": "mp4",
+                    "name": "mp4",
+                    "copy": false,
+                    "video_codec": "h264",
+                    "video_aspect": "letterbox",
+                    "video_fps": null,
+                    "audio_codec": "he_aac",
+                    "audio_channel": "stereo_2_0",
+                    "preset": null,
+                    "owned": true,
+                    "created_at": "2021-07-26T10:13:22+00:00",
+                    "updated_at": "2021-07-26T10:13:22+00:00",
+                    "deleted_at": null
+                },
+                "created_at": "1983-02-23T00:00:00+00:00",
+                "updated_at": "1983-02-23T00:00:00+00:00",
+                "deleted_at": null
+            },
+            "initial": true,
+            "mimetype": "application/octet-stream",
+            "size": 0,
+            "size_human_readable": "0B"
+        }
+    ],
+    "folder": {
+        "original_id": 64277,
+        "id": "1jhvl2uqgzxx",
+        "name": "PUBxxx",
+        "path": "/ixO",
+        "description": null,
+        "validated": false,
+        "published": true,
+        "auto_validate": false,
+        "auto_publish": true,
+        "restricted": false,
+        "key_restricted": false,
+        "allowed_ip": [],
+        "disallowed_ip": [],
+        "allowed_country": [],
+        "disallowed_country": [],
+        "discarded": null,
+        "created_at": "2023-01-12T14:55:32+00:00",
+        "updated_at": "2023-03-09T11:07:15+00:00",
+        "discarded_at": null,
+        "deleted_at": null,
+        "image": null,
+        "media_count": 6,
+        "media_duration": "15085.45",
+        "replace_on_upload": false,
+        "has_image": false
+    },
+    "playbacks": {
+        "1jhvl2upzxxx": {
+            "hls": {
+                "url": "https://play.vod2.infomaniak.com/_hls_/1jhvl2uqiaxxx/1jhvl2upzxxx/1jhvl2uqiaxxxx/manifest.m3u8",
+                "mimetype": "application/x-mpegurl",
+                "data": {
+                    "encoding": "mp4",
+                    "strategy": "HTTP Live Streaming (HLS)",
+                    "key": null
+                }
+            },
+            "dash": {
+                "url": "https://play.vod2.infomaniak.com/_dash_/1jhvl2uqiaxxx/1jhvl2upzxxx/1jhvl2uqiaxxxx/manifest.mpd",
+                "mimetype": "application/dash+xml",
+                "data": {
+                    "encoding": "mp4",
+                    "strategy": "Dynamic Adaptive Streaming over HTTP (DASH)",
+                    "key": null
+                }
+            },
+            "best": {
+                "url": "https://play.vod2.infomaniak.com/_single_/1jhvl2uqiaxxx/1jhvl2upzxxx/1jhvl2uqiaxxxx",
+                "mimetype": "video/mp4",
+                "data": {
+                    "encoding": "Video: h264, 852x480 [letterbox], 800 kb/s, Audio: HE_AAC, 64 kb/s @ 44100 Hz, Stereo 2.0",
+                    "strategy": "Progressive download (Best available)",
+                    "key": null
+                }
+            },
+            "single": [
+                {
+                    "url": "https://play.vod2.infomaniak.com/_single_/1jhvl2uqiaxxx/1jhvl2upzxxx/1jhvl2uqiaxxxx",
+                    "mimetype": "video/mp4",
+                    "data": {
+                        "encoding": "Video: h264, 852x480 [letterbox], 800 kb/s, Audio: HE_AAC, 64 kb/s @ 44100 Hz, Stereo 2.0",
+                        "strategy": "Progressive download",
+                        "key": null
+                    }
+                }
+            ]
+        }
+    },
+    "preview": {
+        "audio": {
+            "url": "https://res.vod2.infomaniak.com/1/vod/thumbnail/1jhvl2uqiaxxx.png",
+            "mimetype": "image/png",
+            "size": 4773,
+            "size_human_readable": "4.77kB",
+            "data": {
+                "manual": false
+            }
+        },
+        "audio_raw": {
+            "url": "https://res.vod2.infomaniak.com/1/vod/thumbnail/1jhvl2uqia8xxx.png",
+            "mimetype": "text/plain",
+            "size": 6216,
+            "size_human_readable": "6.22kB",
+            "data": {
+                "manual": false
+            }
+        },
+        "video": {
+            "url": "https://res.vod2.infomaniak.com/1/vod/thumbnail/1jhvl2uqiaxxx.jpg",
+            "mimetype": "application/octet-stream",
+            "size": 0,
+            "size_human_readable": "0B",
+            "data": {
+                "manual": false
+            }
+        }
+    },
+    "sample": {
+        "audio": {
+            "url": "https://res.vod2.infomaniak.com/1/vod/thumbnail/1jhvl2uqiaxxx.mp3",
+            "mimetype": "audio/mpeg",
+            "size": 80586,
+            "size_human_readable": "80.59kB",
+            "data": {
+                "manual": false
+            }
+        }
+    },
+    "thumbnail": {
+        "url": "https://res.vod2.infomaniak.com/1/vod/thumbnail/1jhvl2uqixxx.jpg",
+        "mimetype": "image/jpeg",
+        "size": 22589,
+        "size_human_readable": "22.59kB",
+        "data": {
+            "manual": false
+        }
+    },
+    "upload": {
+        "file": {
+            "id": "1jhvl2uqixxx",
+            "size": 1901144543,
+            "checksum": "1cec06db6c7c77ab93e2e9b7c59eb2d35dcbde62035cb924e770ec2d69f0981d",
+            "mimetype": "video/mp4",
+            "name": "1jhvl2uxxxx",
+            "extension": "mov",
+            "on_filesystem": true
+        },
+        "id": "1jhvl2uxxx",
+        "url": null,
+        "created_at": "2023-03-16T14:35:41+00:00",
+        "ready_at": "2023-03-16T14:36:37+00:00",
+        "hash_key": null
+    },
+    "logo": null
+}
