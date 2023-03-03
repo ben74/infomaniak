@@ -1,8 +1,11 @@
 <?php
 /*
+ * https://raw.githubusercontent.com/ben74/infomaniak/main/apiVod.php
+ * Full documentation here : https://developer.infomaniak.com/docs/api/#Vod
+ *
  * 1) First, Get your application token here : https://manager.infomaniak.com/v3/ng/accounts/token/list
  * 2) Then get your channel id here, while browsing your channel : vod/10xxx/browse
- * 3) Please note "apiv3" routes ( around line 162 ) for GET request are the fastest ever made for high concurrency querying
+ * 3) Please note "apiv3" routes at end of file for GET request are the fastest ever made for high concurrency querying
  *
  * Full Api Documentation : see https://developer.infomaniak.com/docs/api/get/1/vod/channel/%7Bchannel%7D/media/%7Bmedia%7D
  * + some video walkthrough : https://api.vod2.infomaniak.com/res/embed/1jhvl2uqbhqwv.html
@@ -12,42 +15,57 @@
  * Getting the same results ? Delete your session cookie
  */
 try {
+    if('variables you can edit'){
+        $ip = $_SERVER['REMOTE_ADDR'];// <== Put your public ip while testing this script on localhost
+        //$ip = '93.10.248.62';
+        $secretKey = 'cryptoFunctionXYZ';
+        $cacheThumbnails = true;
+        $resize = [160, 120];// download main thumbnail and resizes it to 160x120 format
+        // throttle user token request in order to avoid programated distribution by your users .. 60 requests max per 1 hour time window ( increase if needed )
+        $limitTokensPerHour = 60;
+        $maxTokensTimeLimit = 3600;
+        $crsfTokenTimeout = 3600;// Lifetime of the crsfToken before requesting a new one
+        $searchFor = 'software';
+        $thumbnailsDir = 'thumbnails';
+        $innerHashes = [hash('crc32', $secretKey . date('YmdH', strtotime('1 hour ago'))), hash('crc32', $secretKey . date('YmdH'))];// inner communication for requesting new CSRF token -- this basically prevents the user from creating an automation for creating tokens
+        $storage='session';
+        $storage=__DIR__.'/storage.json';// Caution:please dont expose these credentials on your document root ..
+    }
 
-$ip = $_SERVER['REMOTE_ADDR'];// <== Put your public ip while testing this script on localhost
-//$ip = '93.10.248.62';
-$secretKey = 'cryptoFunctionXYZ';
-$cacheThumbnails = true;
-$resize = [160, 120];// download main thumbnail and resizes it to 160x120 format
-// throttle user token request in order to avoid programated distribution by your users .. 60 requests max per 1 hour time window ( increase if needed )
-$limitTokensPerHour = 60;
-$maxTokensTimeLimit = 3600;
-$crsfTokenTimeout = 3600;// Lifetime of the crsfToken before requesting a new one
+    $ok = false;
+    chdir(__DIR__);
+    ini_set('display_errors', 1);
+    ini_set('max_execution_time', 999999);
+    $statsFrom = strtotime('6 month ago');
+    $apiUrl = 'https://api.infomaniak.com/1/vod/channel/';
+    $mediaId = $encoding = $apiToken = $channel = $player = '';// to be filled on step 1
+    if(!is_dir($thumbnailsDir))mkdir($thumbnailsDir,0777,true);
+    $mediasUuids = $requestToken = $files = $fileHandles = $multiCh = $stats = $autoPlayliste = $shares = $player = $folders = $medias = $playlists = $res2mk = $_SESSION = [];
 
-$ok = false;
-$searchFor = 'software';
-$thumbnailsDir = 'thumbnails';
-if(!is_dir($thumbnailsDir))mkdir($thumbnailsDir,0777,true);
-$statsFrom = strtotime('6 month ago');
-$apiUrl = 'https://api.infomaniak.com/1/vod/channel/';
-$mediaId = $encoding = $apiToken = $channel = $player = '';// to be filled on step 1
-$innerHashes = [hash('crc32', $secretKey . date('YmdH', strtotime('1 hour ago'))), hash('crc32', $secretKey . date('YmdH'))];// inner communication for requesting new CSRF token -- this basically prevents the user from creating an automation for creating tokens
-$mediasUuids = $requestToken = $files = $fileHandles = $multiCh = $stats = $autoPlayliste = $shares = $player = $folders = $medias = $playlists = $res2mk = [];
+    if($storage=='session' and 'cache support is session for demo purposes'){
+        session_start();// Support for storing API auth informations and client CRSF token => shoud use something else in production such as a redis
+    } else {
+        if(is_file($storage)){
+            $_SESSION=json_decode(file_get_contents($storage),true);
+        }
+        register_shutdown_function(function(){// otherwise session_write_close
+            global $storage;
+            if($_SESSION)file_put_contents($storage,json_encode($_SESSION));
+        });
+    }
 
-session_start();// Support for storing API auth informations and client CRSF token => shoud use something else in production such as a redis
-ini_set('display_errors', 1);
-ini_set('max_execution_time', 999999);
 // '1: If token and channel are ok Query first folder: root and get it identifier') {
 if ('log to the api with your credentials once => put theses values on your code' and !isset($_SESSION['apiToken']) and !isset($_SESSION['channel'])) {
     if (isset($_POST['apiToken']) and isset($_POST['channel']) and 'Step 1: validate token and channel against channel root folder') {
         $options = [CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . $_POST['channel'] . '/folder/root?with=encodings,effective_encodings', CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $_POST['apiToken']]];
-
+        //  quickCurl($apiUrl . $_POST['channel'] . '/folder/root?with=encodings,effective_encodings')
         $contents = json_decode(curlRequest($options), true);
         if ($contents['data']['id']) {
             $ok = true;
-            $_SESSION['apiToken'] = $_POST['apiToken'];
-            $_SESSION['channel'] = $_POST['channel'];
-            $_SESSION['encoding'] = $contents['data']['encodings'][0]['id'];
-            $_SESSION['rootFolderId'] = $contents['data']['id'];
+            ss('apiToken',$_POST['apiToken']);
+            ss('channel',$_POST['channel']);
+            ss('encoding',$contents['data']['encodings'][0]['id']);
+            ss('rootFolderId',$contents['data']['id']);
         }
 
     }
@@ -124,7 +142,17 @@ if ('async actions') {
 
         file_put_contents($ip . '.requests', json_encode($requestsPerIp));
 
-        $post = [];
+        $post = // will be valid for 1 hour once consumed starting in 12 hours and ending in 24 hours in theses domains
+            [
+                'window'=>3600/* validity in seconds */,
+                'ip'=>'127.0.0.1'/* v4 adress, but one day its going to be ipv6, so you'll have to catch your user ipv4 or ipv6 using ajax requests : https://ipv4.infomaniak.com/ip.php , https://www.infomaniak.com/ip.php might return ipv6 if available , if both respond ipv4 its safe , yet the server only resolves as ipv4, but might resolve adresses as ipv6 in the future */,
+                'start_time'=>date('Y-m-d H:i:s',strtotime('12 hours')),
+                'end_time'=>date('Y-m-d H:i:s',strtotime('24 hours')),
+                'allowed_domains'=>['infomaniak.ch','other.ch'],
+                'restricted_domains'=>['notthisone.ch','neither.ch']
+            ];
+
+        $post = [];// default parameters
         /**
          * options dans le body du post
          * strategy:DASH|HLS|BEST|SINGLE
@@ -152,8 +180,8 @@ if ('async actions') {
 
 if ('refresh page token used for throttling token api queries, only for legitimate users') {
     if (!isset($_SESSION['expires']) or $_SESSION['expires'] < (time() + ($crsfTokenTimeout / 2))) {
-        $_SESSION['expires'] = time() + $crsfTokenTimeout;
-        $_SESSION['uniqid'] = \uniqid();// refresh token : add complexity
+        ss('expires', time() + $crsfTokenTimeout);
+        ss('uniqid',\uniqid());// refresh token : add complexity
     }
     if (isset($_GET['refreshToken'])) {// async ajax refreshToken action
         if (!isset($_POST['hash']) or !in_array($_POST['hash'], $innerHashes)) {
@@ -163,50 +191,11 @@ if ('refresh page token used for throttling token api queries, only for legitima
     }
 }
 
-
-if('apiv3 routes : in progress, those are the fastest ones '){/*    /([2-9]|[0-9]{2,})
-    HOST : https://api.vod2.infomaniak.com/2/vod/
-    GET|HEAD   accounts/{account}/channels
-    GET|HEAD   browse/{folder}
-    GET|HEAD   browse/{folder}/breadcrumb
-    GET|HEAD   browse/{folder}/tree
-    GET|HEAD   channels/{channel}
-    GET|HEAD   channels/{channel}/browse
-    GET|HEAD   channels/{channel}/browse/breadcrumb
-    GET|HEAD   channels/{channel}/browse/trash
-    GET|HEAD   channels/{channel}/browse/tree
-    GET|HEAD   channels/{channel}/encodings
-    GET|HEAD   channels/{channel}/folders
-    GET|HEAD   channels/{channel}/media
-    GET|HEAD   channels/{channel}/players
-    GET|HEAD   chapters/{chapter}
-    GET|HEAD   chapters/{chapter}.{format}
-    GET|HEAD   encodings/p
-    GET|HEAD   encodings/p/{profile}
-    GET|HEAD   encodings/{encoding}
-    GET|HEAD   folders/{folder}
-    GET|HEAD   lang
-    GET|HEAD   lang/{lang}
-    GET|HEAD   media/{media}
-    GET|HEAD   media/{media}/chapters
-    GET|HEAD   media/{media}/chapters.{format}
-    GET|HEAD   media/{media}/subtitles
-    GET|HEAD   media/{media}/thumbnails
-    GET|HEAD   players/{player}
-    GET|HEAD   players/{player}.{image}.{format}
-    GET|HEAD   subtitles/{subtitle}
-    GET|HEAD   subtitles/{subtitle}.{format}
-    GET|HEAD   thumbnails/{thumbnail}
-    GET|HEAD   thumbnails/{thumbnail}.{format}
-*/
-}
-
-
 if (!$player and '2:list available players - get first one available - in order to publish shares foreach found media') {
     $options = [CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/player', CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken]];
 
     $contents = json_decode(curlRequest($options), true);
-    $player = $_SESSION['player'] = $contents['data'][0]['id'];
+    $player = $contents['data'][0]['id'];ss('player',$player);
 }
 
 
@@ -214,9 +203,10 @@ if (!$autoPlayliste and '3 : list all playlists, then returns the share with the
     $options = [CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/playlist?with=shares', CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken]];
 
     $contents = json_decode(curlRequest($options), true);
-    $autoPlaylisteShare = $_SESSION['autoPlaylisteShare'] = '';
+    $autoPlaylisteShare = '';ss('autoPlaylisteShare','');
 
-    $playlists = $_SESSION['playlists'] = $contents['data'];
+    $playlists =  $contents['data'];
+    ss('playlists',$playlists);
     foreach ($contents['data'] as $playlist) {
         if ($playlist['type'] == 'dynamic' and $playlist['name'] == 'autodyn') {
 
@@ -282,14 +272,13 @@ if (!$medias and '4 : list all media --> get thumbnails, creates shares if non e
     $medias = $contents['data'];
     foreach ($medias as &$media) {
         if (
-            $media['playbacks'] or
-            !$media['encodings'] or $media['id'] == '1jhvl2uqe6vo2' or $media['streams'] == [0 => 'audio']) {
+            !$media['playbacks'] or !$media['encodings'] or $media['id'] == '1jhvl2uqe6vo2' or $media['streams'] == [0 => 'audio']) {
             continue;//     Cant share a media which has non encodings ..
         }
         if (!$media['shares'] or $media['shares'][0]['validity']) {
             if ('4B: create a share of the uploaded media') {
                // $post = json_encode(['validity' => 0, 'target' => $media['id'], 'player' => $player, 'encoding' => $media['encodings'][0]['id']]);
-                $post = json_encode(['validity' => 0, 'target' => $media['id'], 'player' => $player, 'encoding' => array_keys($media['playbacks'])[0]]);
+                $post = json_encode(['validity' => 0/* never expires, if >0, will expire in that much seconds  */, 'target' => $media['id'], 'player' => $player, 'encoding' => array_keys($media['playbacks'])[0]]);
                 $options = [CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken, 'Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/share', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post];
 //    {"validity":0,"target":"1jhvl2uqe6vo2","player":"1jhvl2upwockr","encoding":"1jhvl2uq8p2rs"}     {target: "1jhvl2uqbdrgq", encoding: "1jhvl2uq8p2rn"}
                 $c1 = json_decode(curlRequest($options), true);
@@ -306,11 +295,11 @@ if (!$medias and '4 : list all media --> get thumbnails, creates shares if non e
 }
 
 if ('5:display') {
-    echo '<div id=play class=hide></div><h1>Infomaniak Vod Api</h1><a href="#" onclick=popup(\'' . $autoPlaylisteShare . '\')">Dynamic Channel Playlist with all medias</a><div class=row>';
+    echo '<div id=play class=hide></div><h1>Infomaniak Vod Api</h1><a href="#" onclick="popup(\'' . $autoPlaylisteShare . '\')">Dynamic Channel Playlist with all medias</a><div class=row>';
     foreach ($medias as $mk => &$media) {
 
         if (!is_array($media)) {
-            $uuidOnly = 'mauvaise formation du cache';
+            $uuidOnly = 'mauvaise formation du cache';$_SESSION=[];continue;
         }
         $protected = false;
         $share = (isset($media['shares']) && isset($media['shares'][0])) ? $media['shares'][0]['id'] : 0;
@@ -491,7 +480,7 @@ if ('5:display') {
             }
 
             $mediasUuids[]=$media['id'];
-            echo "<div class=c id='m" . $media['id'] . "'><div class=media><a h='$link' share='" . $share['id'] . "' title='" . strip_tags($media['name'])
+            echo "\n\t<div class=c id='m" . $media['id'] . "'><div class=media><a h='$link' share='" . $share['id'] . "' title='" . strip_tags($media['name'])
                 . "' href='#' onclick='popup(\"" . $link . "\"" . (($protected) ? ',this,"' . $share['id'] . '"' : '') . ");'"
                 . "><div class=img media='" . $media['id']
                 . "' play=0 origin='$tnFile' preview='" . $media['sample']
@@ -766,7 +755,7 @@ if ('5:display') {
 
         if ('8: upload media into this folder' && is_file($file2uploadLocalPath)) {
             $post = ['folder' => $folder, 'name' => 'videoName', 'file' => new \CURLFile($file2uploadLocalPath, '', $videoFileName)];
-            $contents = json_decode(curlRequest([CURLOPT_TIMEOUT => 360000/* large timeout for large files */, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken, 'User-Agent: client', 'Content-Type: multipart/form-data'], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/upload', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post]),true);
+            $contents = json_decode(curlRequest([CURLOPT_TIMEOUT => 36000/* large timeout for large files */, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken, 'User-Agent: client', 'Content-Type: multipart/form-data'], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/upload', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post]),true);
             $uploadedMediaId = $contents['data']['id'];
             echo "\nUploaded media id: " . $uploadedMediaId;
         }
@@ -778,15 +767,22 @@ if ('5:display') {
             echo "\nUploaded media id: " . $uploadedMediaId;
         }
 
-        if ('10: set a callback if none present') {
-            $callbacks = json_decode(curlRequest([CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken, 'User-Agent: client', 'Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/callback']),true);
+        if ("10: change media thumbnail (have to wait both preview and poster are generated .. otherwise they'll be overriden") {
+            $thumbnail='1jhvl2uqgbuon.jpg.jpg';
+            $post = [ 'file' => new \CURLFile($thumbnail, '', $thumbnail)];
+            $contents = json_decode(quickCurl($apiUrl . '/media/'.$medias[0]['id'].'/thumbnail',[CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post],['Content-Type: multipart/form-data']));
+            //{"result":"success","data":{"id":"1jhvl2uqi21qz","created_at":"1678438327","updated_at":"1678438327","deleted_at":null,"link":{"url":"https:\/\/res.vod2.infomaniak.com\/1\/vod\/thumbnail\/1jhvl2uqi21qz.jpg","mimetype":"image\/jpeg","size":635266,"size_human_readable":"635.27kB","data":{"manual":true}},"manual":true}}
+        }
 
+        if ('11: set a callback if none present') {
+            $callbacks = json_decode(quickCurl($apiUrl . '/callbackl',[CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post],['Content-Type: application/json']));
             if (!$callbacks or !$callbacks['data']) {
                 $contents = json_decode(curlRequest([CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken, 'User-Agent: client', 'Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/callback', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => '{"name":"callback","events": ["media_ready","encoding_finished"],"url":"http://yourdomain.com/callbackHandler.php","response":"json","auth":"none","active": true}']),true);
             }
             echo "\nCallback id: " . $contents['data']['id'];
         }
     }
+    $a=1;
     } catch (\Throwable $e) {
         echo "Error: " . $e->getMessage() . ':' . $e->getLine();// . ':' . json_encode($e);
     }
@@ -820,6 +816,22 @@ if ('5:display') {
             $res = json_encode(['error' => '404 response for ' . $options[CURLOPT_URL]]);
         }
         return $res;
+    }
+
+    function curlHeaders($headers)
+    {
+        global $apiToken;
+        return ['Authorization: Bearer ' . $apiToken, 'User-Agent: api'] + $headers;
+    }
+
+    function quickCurl($url, $options = [], $headers = [])
+    {
+        return curlRequest([CURLOPT_TIMEOUT => 3600, CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => curlHeaders($headers), CURLOPT_URL => $url] + $options);
+    }
+
+    function ss($k, $v)
+    {
+        $_SESSION[$k] = $v;
     }
 
     ?>
@@ -921,14 +933,53 @@ if ('5:display') {
     }
 
     </style>
-<?php return;?>
+<?php return;
 
 
-curl -ks -H "Authorization: Bearer $token" -H "Content-type: application/json" 1/channel/xXx/browse/update -X PUT --data '{ "targets": ["1jhvl2uqh41ll","1jhvl2uqh3yl8"], "published": true, "validated": true }'
+?>
+curl -ks -H 'Content-Type: multipart/form-data' -H "Authorization: Bearer $token" 1/channel/xXx/media/xXx/thumbnail -X POST -F 'file=@thumbnail.jpg';
+curl -ks -H "Authorization: Bearer $token" -H "Content-type: application/json" 1/channel/xXx/browse/update -X PUT --data '{ "targets": ["1jhvl2uqh41ll","1jhvl2uqh3yl8"], "published": true, "validated": true }';
 curl -ks -H "Authorization: Bearer $token" -H "Content-type: application/json" 1/channel/xXx/browse/trash -X DELETE --data '{"targets": ["1jhvl2xxx4wzm"]}'; # permanently delete file from trash
 curl -ks -H "Authorization: Bearer $token" -H "Content-type: application/json" 1/channel/XxX/player/1jhvlxXxf5inu -X PUT --data '{"name":"name","slug":"slut"}';# etc pour tous les attributs
 curl -ks -H "Authorization: Bearer $token" 1/channel/XxX/media/YyY/chapter/ZzZ
 
 POST /channel/xxx/browse/move --data '{targets: ["1jhvl2uqhksoy"], destination: "1jhvl2uq8p2r0"}';# medias Uuid to folder, caution, it deletes previous shares
-POST : /channel/{channel}/browse/copy --data '{name: "mediaNameInFolder", destination: "1jhvl2uq8p2r0"}'
+    POST : /channel/{channel}/browse/copy --data '{name: "mediaNameInFolder", destination: "1jhvl2uq8p2r0"}'
 
+
+if ('apiv3 routes : in progress, those are the fastest ones ') {/*    /([2-9]|[0-9]{2,})
+    HOST : https://api.vod2.infomaniak.com/2/vod/
+    GET|HEAD   accounts/{account}/channels
+    GET|HEAD   browse/{folder}
+    GET|HEAD   browse/{folder}/breadcrumb
+    GET|HEAD   browse/{folder}/tree
+    GET|HEAD   channels/{channel}
+    GET|HEAD   channels/{channel}/browse
+    GET|HEAD   channels/{channel}/browse/breadcrumb
+    GET|HEAD   channels/{channel}/browse/trash
+    GET|HEAD   channels/{channel}/browse/tree
+    GET|HEAD   channels/{channel}/encodings
+    GET|HEAD   channels/{channel}/folders
+    GET|HEAD   channels/{channel}/media
+    GET|HEAD   channels/{channel}/players
+    GET|HEAD   chapters/{chapter}
+    GET|HEAD   chapters/{chapter}.{format}
+    GET|HEAD   encodings/p
+    GET|HEAD   encodings/p/{profile}
+    GET|HEAD   encodings/{encoding}
+    GET|HEAD   folders/{folder}
+    GET|HEAD   lang
+    GET|HEAD   lang/{lang}
+    GET|HEAD   media/{media}
+    GET|HEAD   media/{media}/chapters
+    GET|HEAD   media/{media}/chapters.{format}
+    GET|HEAD   media/{media}/subtitles
+    GET|HEAD   media/{media}/thumbnails
+    GET|HEAD   players/{player}
+    GET|HEAD   players/{player}.{image}.{format}
+    GET|HEAD   subtitles/{subtitle}
+    GET|HEAD   subtitles/{subtitle}.{format}
+    GET|HEAD   thumbnails/{thumbnail}
+    GET|HEAD   thumbnails/{thumbnail}.{format}
+*/
+}
