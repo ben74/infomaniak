@@ -754,15 +754,17 @@ if ('5:display') {
         $videoUrl = 'https://www.youtube.com/watch?v=uSce2_Te6Dc';
 
         if ('8: upload media into this folder' && is_file($file2uploadLocalPath)) {
+            $sha256=hash_file('sha256',$file2uploadLocalPath);// is optional
             $post = ['folder' => $folder, 'name' => 'videoName', 'file' => new \CURLFile($file2uploadLocalPath, '', $videoFileName)];
-            $contents = json_decode(curlRequest([CURLOPT_TIMEOUT => 36000/* large timeout for large files */, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken, 'User-Agent: client', 'Content-Type: multipart/form-data'], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/upload', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post]),true);
+            $contents = json_decode(curlRequest([CURLOPT_TIMEOUT => 36000/* large timeout for large files */, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken, 'User-Agent: client', 'Content-Type: multipart/form-data','Digest: sha256='.$sha256], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/upload', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post]),true);
             $uploadedMediaId = $contents['data']['id'];
             echo "\nUploaded media id: " . $uploadedMediaId;
         }
 
         if ('9: upload a distant media ( by url ) into this folder') {
+            $sha256='sha256oftheGivenUrl';// is optional, but permit detection of non fully transferred files
             $post = ['folder' => $folder, 'filename' => 'videoName', 'url' => $videoUrl];
-            $contents = json_decode(curlRequest([CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken, 'User-Agent: client', 'Content-Type: multipart/form-data'], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/upload', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post]),true);
+            $contents = json_decode(curlRequest([CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken, 'User-Agent: client', 'Content-Type: multipart/form-data','Digest: sha256='.$sha256], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/upload', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post]),true);
             $uploadedMediaId = $contents['data']['id'];
             echo "\nUploaded media id: " . $uploadedMediaId;
         }
@@ -775,7 +777,7 @@ if ('5:display') {
         }
 
         if ('11: set a callback if none present') {
-            $callbacks = json_decode(quickCurl($apiUrl . '/callbackl',[CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post],['Content-Type: application/json']));
+            $callbacks = json_decode(quickCurl($apiUrl . '/callback',[CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post],['Content-Type: application/json']));
             if (!$callbacks or !$callbacks['data']) {
                 $contents = json_decode(curlRequest([CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken, 'User-Agent: client', 'Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/callback', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => '{"name":"callback","events": ["media_ready","encoding_finished"],"url":"http://yourdomain.com/callbackHandler.php","response":"json","auth":"none","active": true}']),true);
             }

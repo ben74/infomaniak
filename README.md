@@ -10,3 +10,7 @@
 > - caching thumbnails
 > - on the fly secure token creation
 > - statistics and ajax actions
+> - Callbacks handler and worker ( see callbacksExamples folder for json responses structure )
+
+> Please : 
+> - follow callback recommandation ( which allows your host to quickly receive them, then send the response ASAP ), if your host takes more than 10s to send the 200 OK header, then your host will be blacklisted for 2 hours ( you wont receive any callbacks in that period of time)
