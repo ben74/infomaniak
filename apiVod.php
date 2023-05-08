@@ -1,6 +1,6 @@
 <?php
 /*
- * https://raw.githubusercontent.com/ben74/infomaniak/main/apiVod.php
+ * Get latest version at : https://raw.githubusercontent.com/ben74/infomaniak/main/apiVod.php
  * Full documentation here : https://developer.infomaniak.com/docs/api/#Vod
  *
  * 1) First, Get your application token here : https://manager.infomaniak.com/v3/ng/accounts/token/list
@@ -113,7 +113,7 @@ $apiUrl .= $channel;
 
 
 if ('async actions') {
-    if (isset($_POST['mediaStats'])) {
+    if (isset($_POST['mediaStats']) && $_POST['mediaStats']) {
         $a=curlRequest([CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/statistics/viewers/medias?from=' . $statsFrom . '&medias=' . $_POST['mediaStats']]);
        die($a);
     }
@@ -264,18 +264,24 @@ if (!$medias and '4 : list all media --> get thumbnails, creates shares if non e
      * effective_encodings : different video qualities associated with the media
      */
 
-    $options = [CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/media?per_page=35&page=1&order_by=created_at&order=desc&with=encodings,effective_encodings,shares,thumbnail,sample,playbacks'];//,thumbstrip,preview,sample,,scenes,encodings,progress,state
+    $options = [CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/media?per_page=35&page=1&order_by=created_at&order=desc&with=encodings,effective_encodings,shares,thumbnail,sample,playbacks'];//,thumbstrip,preview,sample,,scenes,encodings,progress,state -> might consider loading less data in order to get a faster response
+    //  &filter[]=published:0&order_by=name&order=desc
 
     $contents = json_decode(curlRequest($options), true);
 
 //shares
     $medias = $contents['data'];
     foreach ($medias as &$media) {
-        if (
-            !$media['playbacks'] or !$media['encodings'] or $media['id'] == '1jhvl2uqe6vo2' or $media['streams'] == [0 => 'audio']) {
-            continue;//     Cant share a media which has non encodings ..
+
+        if (!$media['playbacks'] or $media['streams'] == [0 => 'audio']) {
+            continue;//    or !$media['encodings']  Cant share a media which has non encodings ..
         }
-        if (!$media['shares'] or $media['shares'][0]['validity']) {
+
+        if ($media['shares']) {// Filter deleted or time expiration shares
+            $media['shares'] = array_values(array_filter(array_map(function($a){if($a['validity'] or $a['deleted_at'] or $a['valid_until']){return null;}return $a;}, $media['shares'])));
+        }
+
+        if (!$media['shares'] or $media['shares'][0]['validity'] or $media['shares'][0]['deleted_at']) {//
             if ('4B: create a share of the uploaded media') {
                // $post = json_encode(['validity' => 0, 'target' => $media['id'], 'player' => $player, 'encoding' => $media['encodings'][0]['id']]);
                 $post = json_encode(['validity' => 0/* never expires, if >0, will expire in that much seconds  */, 'target' => $media['id'], 'player' => $player, 'encoding' => array_keys($media['playbacks'])[0]]);
@@ -291,10 +297,11 @@ if (!$medias and '4 : list all media --> get thumbnails, creates shares if non e
         }
     }
     unset($media);
-    $_SESSION['medias'] = $medias = $contents['data'];
+    $_SESSION['medias'] = $medias;// = $contents['data'];
 }
 
 if ('5:display') {
+    header('Content-Type: text/html; charset=utf-8');
     echo '<div id=play class=hide></div><h1>Infomaniak Vod Api</h1><a href="#" onclick="popup(\'' . $autoPlaylisteShare . '\')">Dynamic Channel Playlist with all medias</a><div class=row>';
     foreach ($medias as $mk => &$media) {
 
@@ -816,6 +823,10 @@ if ('5:display') {
         }
         if ($i['http_code'] == 404) {
             $res = json_encode(['error' => '404 response for ' . $options[CURLOPT_URL]]);
+        }
+        if (substr($i['http_code'], 0, 1) == 5) {// bad gateway or timeout
+            $bt = debug_backtrace(-2)[0]['line'];
+            throw new Exception('Bad response: ' . $i['http_code'] . ' : ' . $bt . ':<pre style="white-space: pre-wrap;">' . json_encode($json['error']) . " with payload \n\n" . $options[CURLOPT_URL] . "\n\n" . $options[CURLOPT_POSTFIELDS]);
         }
         return $res;
     }
