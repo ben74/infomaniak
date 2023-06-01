@@ -16,6 +16,7 @@
  */
 try {
     if('variables you can edit'){
+        $perPage=5;
         $ip = $_SERVER['REMOTE_ADDR'];// <== Put your public ip while testing this script on localhost
         //$ip = '93.10.248.62';
         $secretKey = 'cryptoFunctionXYZ';
@@ -199,7 +200,7 @@ if (!$player and '2:list available players - get first one available - in order 
 }
 
 
-if (!$autoPlayliste and '3 : list all playlists, then returns the share with the auto playlist videos') {
+if (0 and !$autoPlayliste and '3 : list all playlists, then returns the share with the auto playlist videos') {
     $options = [CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/playlist?with=shares', CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken]];
 
     $contents = json_decode(curlRequest($options), true);
@@ -264,7 +265,7 @@ if (!$medias and '4 : list all media --> get thumbnails, creates shares if non e
      * effective_encodings : different video qualities associated with the media
      */
 
-    $options = [CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/media?per_page=35&page=1&order_by=created_at&order=desc&with=encodings,effective_encodings,shares,thumbnail,sample,playbacks'];//,thumbstrip,preview,sample,,scenes,encodings,progress,state -> might consider loading less data in order to get a faster response
+    $options = [CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/media?per_page='.$perPage.'&page=1&order_by=created_at&order=desc&with=encodings,effective_encodings,shares,thumbnail,sample,playbacks'];//,thumbstrip,preview,sample,,scenes,encodings,progress,state -> might consider loading less data in order to get a faster response
     //  &filter[]=published:0&order_by=name&order=desc
 
     $contents = json_decode(curlRequest($options), true);
@@ -698,7 +699,7 @@ if ('5:display') {
 
     if (0 and 'other usefull ( yet disabled in this script ) functions') {
         if ('6 : search for a media by name') {
-            $options = [CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/browse?page=1&per_page=35&with=shares,thumbnail&search=' . $searchFor];
+            $options = [CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/browse?page=1&per_page='.$perPage.'&with=shares,thumbnail&search=' . $searchFor];
             $searchResults = json_decode(curlRequest($options), true)['data'];
             $sharesForMedias = [];
             foreach ($searchResults as $searchResult) {
@@ -799,7 +800,7 @@ if ('5:display') {
     function curlRequest($options)
     {
         $ch = curl_init();
-        curl_setopt_array($ch, $options);
+        curl_setopt_array($ch, [CURLOPT_TIMEOUT => 3600] + $options);
         $res = curl_exec($ch);
         $i = curl_getinfo($ch);
 
