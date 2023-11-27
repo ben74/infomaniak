@@ -15,6 +15,7 @@
  * Getting the same results ? Delete your session cookie
  */
 try {
+
     if('variables you can edit'){
         $perPage=5;
         $ip = $_SERVER['REMOTE_ADDR'];// <== Put your public ip while testing this script on localhost
@@ -29,8 +30,6 @@ try {
         $searchFor = 'software';
         $thumbnailsDir = 'thumbnails';
         $innerHashes = [hash('crc32', $secretKey . date('YmdH', strtotime('1 hour ago'))), hash('crc32', $secretKey . date('YmdH'))];// inner communication for requesting new CSRF token -- this basically prevents the user from creating an automation for creating tokens
-        $storage='session';
-        $storage=__DIR__.'/storage.json';// Caution:please dont expose these credentials on your document root ..
     }
 
     $ok = false;
@@ -43,17 +42,20 @@ try {
     if(!is_dir($thumbnailsDir))mkdir($thumbnailsDir,0777,true);
     $mediasUuids = $requestToken = $files = $fileHandles = $multiCh = $stats = $autoPlayliste = $shares = $player = $folders = $medias = $playlists = $res2mk = $_SESSION = [];
 
-    if($storage=='session' and 'cache support is session for demo purposes'){
-        session_start();// Support for storing API auth informations and client CRSF token => shoud use something else in production such as a redis
-    } else {
-        if(is_file($storage)){
-            $_SESSION=json_decode(file_get_contents($storage),true);
-        }
-        register_shutdown_function(function(){// otherwise session_write_close
-            global $storage;
-            if($_SESSION)file_put_contents($storage,json_encode($_SESSION));
-        });
+$storage='session';
+$storage=__DIR__.'/storage.json';// Caution:please dont expose these credentials on your document root ..
+
+if($storage=='session' and 'cache support is session for demo purposes'){
+    session_start();// Support for storing API auth informations and client CRSF token => shoud use something else in production such as a redis
+} else {
+    if(is_file($storage)){
+        $_SESSION=json_decode(file_get_contents($storage),true);
     }
+    register_shutdown_function(function(){// otherwise session_write_close
+        global $storage;
+        if ($_SESSION) file_put_contents($storage, json_encode($_SESSION));
+    });
+}
 
 // '1: If token and channel are ok Query first folder: root and get it identifier') {
 if ('log to the api with your credentials once => put theses values on your code' and !isset($_SESSION['apiToken']) and !isset($_SESSION['channel'])) {
@@ -109,11 +111,16 @@ if ('log to the api with your credentials once => put theses values on your code
     }
 }
 
+
+
 extract($_SESSION);//shortcut for populating variables
 $apiUrl .= $channel;
 
 
 if ('async actions') {
+    if (isset($_POST['reset']) && $_POST['reset']) {
+        $_SESSION=[];@unlink($storage);header('Location: ?#reset=1',true,302);die;
+    }
     if (isset($_POST['mediaStats']) && $_POST['mediaStats']) {
         $a=curlRequest([CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/statistics/viewers/medias?from=' . $statsFrom . '&medias=' . $_POST['mediaStats']]);
        die($a);
@@ -266,6 +273,7 @@ if (!$medias and '4 : list all media --> get thumbnails, creates shares if non e
      */
 
     $options = [CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/media?per_page='.$perPage.'&page=1&order_by=created_at&order=desc&with=encodings,effective_encodings,shares,thumbnail,sample,playbacks'];//,thumbstrip,preview,sample,,scenes,encodings,progress,state -> might consider loading less data in order to get a faster response
+
     //  &filter[]=published:0&order_by=name&order=desc
 
     $contents = json_decode(curlRequest($options), true);
@@ -274,7 +282,7 @@ if (!$medias and '4 : list all media --> get thumbnails, creates shares if non e
     $medias = $contents['data'];
     foreach ($medias as &$media) {
 
-        if (!$media['playbacks'] or $media['streams'] == [0 => 'audio']) {
+        if (!$media['playbacks']) {// or $media['streams'] == [0 => 'audio']
             continue;//    or !$media['encodings']  Cant share a media which has non encodings ..
         }
 
@@ -303,7 +311,7 @@ if (!$medias and '4 : list all media --> get thumbnails, creates shares if non e
 
 if ('5:display') {
     header('Content-Type: text/html; charset=utf-8');
-    echo '<div id=play class=hide></div><h1>Infomaniak Vod Api</h1><a href="#" onclick="popup(\'' . $autoPlaylisteShare . '\')">Dynamic Channel Playlist with all medias</a><div class=row>';
+    echo '<div id=play class=hide></div><h1 style=display:inline>Infomaniak Vod Api</h1>'.((isset($autoPlaylisteShare) && $autoPlaylisteShare)?' - <a href="#" onclick="popup(\'' . $autoPlaylisteShare . '\')">Dynamic Channel Playlist with all medias</a>':'').' - <a href="?reset=1">Rafraichir les résultats</a><div class=row>';
     foreach ($medias as $mk => &$media) {
 
         if (!is_array($media)) {
@@ -425,6 +433,8 @@ if ('5:display') {
                                 $image = imagecreatefrompng($files[$resId]);
                             } elseif ($mime == 32) {
                                 $image = imagecreatefromwebp($files[$resId]);
+                            } else {
+                                $a = 1;
                             }
                             $tmp = imagecreatetruecolor($resize[0], $resize[1]);
                             imagecopyresampled($tmp, $image, 0, 0, 0, 0, $resize[0], $resize[1], $w, $h);
@@ -488,10 +498,12 @@ if ('5:display') {
             }
 
             $mediasUuids[]=$media['id'];
+            if(is_array($media['sample']))$media['sample']='';
             echo "\n\t<div class=c id='m" . $media['id'] . "'><div class=media><a h='$link' share='" . $share['id'] . "' title='" . strip_tags($media['name'])
                 . "' href='#' onclick='popup(\"" . $link . "\"" . (($protected) ? ',this,"' . $share['id'] . '"' : '') . ");'"
                 . "><div class=img media='" . $media['id']
-                . "' play=0 origin='$tnFile' preview='" . $media['sample']
+                . "' play=0 origin='$tnFile'
+                preview='" . ($media['sample']??'')
                 . "' style='background-image:url(" . $media['thumbnail']
                 . ")'></div>" . (($protected) ? 'protected<br>' : '') .
                 substr(str_replace('_', ' ', strip_tags($media['name'])), 0, 15) . " <i class=stats></i></a><br>";
@@ -791,11 +803,57 @@ if ('5:display') {
             }
             echo "\nCallback id: " . $contents['data']['id'];
         }
+
+        if ('12: Subtitles : create and publish, then edit, then toggle published / unpublished') {
+            $lang = 'fr';
+            $uuidMedia = reset($mediasUuids);
+            $post=['name'=>'soustitre','published'=>true,'lines'=>[
+                ['start'=>'0.000','end'=>'2.000','text'=>'soustitre deux premières secondes']
+                ,['start'=>'2.000','end'=>'4.000','text'=>'soustitre deux à 4']]
+            ];
+
+            $uuidSubtitle = json_decode(quickCurl($apiUrl . '/media/' . $uuidMedia . '/subtitle/' . $lang, [CURLOPT_POST => 1, CURLOPT_POSTFIELDS =>json_encode($post)], ['Content-Type: application/json']))['data']['id'];
+            echo "\nSubtitle id: " . $uuidSubtitle;
+
+            $post=['name'=>'soustitre2','published'=>false,'lines'=>[
+                ['start'=>'0.000','end'=>'2.000','text'=>'soustitre deux premières secondes']
+                ,['start'=>'4.000','end'=>'6.000','text'=>'soustitre 4 à 6']]
+            ];
+            $modifiedSubtitleUnpublished = json_decode(quickCurl($apiUrl . '/media/' . $uuidMedia . '/subtitle/' . $uuidSubtitle, [CURLOPT_CUSTOMREQUEST => 'PUT', CURLOPT_POSTFIELDS => json_encode($post)], ['Content-Type: application/json']));
+
+            $post=['subtitles'=>[$uuidSubtitle],'published'=>true];
+            $batchPublishingSubtitles = json_decode(quickCurl($apiUrl . '/media/' . $uuidMedia . '/subtitle', [CURLOPT_CUSTOMREQUEST => 'PUT', CURLOPT_POSTFIELDS => json_encode($post)], ['Content-Type: application/json']));
+        }
+
+
+
     }
     $a=1;
     } catch (\Throwable $e) {
         echo "Error: " . $e->getMessage() . ':' . $e->getLine();// . ':' . json_encode($e);
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     function curlRequest($options)
     {
@@ -951,6 +1009,11 @@ if ('5:display') {
 
 
 ?>
+
+
+
+
+
 curl -ks -H 'Content-Type: multipart/form-data' -H "Authorization: Bearer $token" 1/channel/xXx/media/xXx/thumbnail -X POST -F 'file=@thumbnail.jpg';
 curl -ks -H "Authorization: Bearer $token" -H "Content-type: application/json" 1/channel/xXx/browse/update -X PUT --data '{ "targets": ["1jhvl2uqh41ll","1jhvl2uqh3yl8"], "published": true, "validated": true }';
 curl -ks -H "Authorization: Bearer $token" -H "Content-type: application/json" 1/channel/xXx/browse/trash -X DELETE --data '{"targets": ["1jhvl2xxx4wzm"]}'; # permanently delete file from trash
@@ -958,7 +1021,10 @@ curl -ks -H "Authorization: Bearer $token" -H "Content-type: application/json" 1
 curl -ks -H "Authorization: Bearer $token" 1/channel/XxX/media/YyY/chapter/ZzZ
 
 POST /channel/xxx/browse/move --data '{targets: ["1jhvl2uqhksoy"], destination: "1jhvl2uq8p2r0"}';# medias Uuid to folder, caution, it deletes previous shares
-    POST : /channel/{channel}/browse/copy --data '{name: "mediaNameInFolder", destination: "1jhvl2uq8p2r0"}'
+POST : /channel/{channel}/browse/copy --data '{name: "mediaNameInFolder", destination: "1jhvl2uq8p2r0"}'
+
+
+
 
 
 if ('apiv3 routes : in progress, those are the fastest ones ') {/*    /([2-9]|[0-9]{2,})
@@ -995,5 +1061,18 @@ if ('apiv3 routes : in progress, those are the fastest ones ') {/*    /([2-9]|[0
     GET|HEAD   subtitles/{subtitle}.{format}
     GET|HEAD   thumbnails/{thumbnail}
     GET|HEAD   thumbnails/{thumbnail}.{format}
+
+
+GET|HEAD        api/pub/v1/channel/{channel}/media/{media}/subtitle
+PUT|PATCH       api/pub/v1/channel/{channel}/media/{media}/subtitle
+DELETE          api/pub/v1/channel/{channel}/media/{media}/subtitle
+POST            api/pub/v1/channel/{channel}/media/{media}/subtitle/{language}
+POST            api/pub/v1/channel/{channel}/media/{media}/subtitle/{language}/import
+GET|HEAD        api/pub/v1/channel/{channel}/media/{media}/subtitle/{subtitle}
+PUT|PATCH       api/pub/v1/channel/{channel}/media/{media}/subtitle/{subtitle}
+DELETE          api/pub/v1/channel/{channel}/media/{media}/subtitle/{subtitle
+PUT             api/pub/v1/channel/{channel}/media/{media}/subtitle/{subtitle}/default
+
 */
 }
+
