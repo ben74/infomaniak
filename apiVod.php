@@ -150,32 +150,21 @@ if ('async actions') {
 
         file_put_contents($ip . '.requests', json_encode($requestsPerIp));
 
-        $post = // will be valid for 1 hour once consumed starting in 12 hours and ending in 24 hours in theses domains
+        $post =
             [
-                'window'=>3600/* validity in seconds */,
-                'ip'=>'127.0.0.1'/* v4 adress, but one day its going to be ipv6, so you'll have to catch your user ipv4 or ipv6 using ajax requests : https://ipv4.infomaniak.com/ip.php , https://www.infomaniak.com/ip.php might return ipv6 if available , if both respond ipv4 its safe , yet the server only resolves as ipv4, but might resolve adresses as ipv6 in the future */,
-                'start_time'=>date('Y-m-d H:i:s',strtotime('12 hours')),
-                'end_time'=>date('Y-m-d H:i:s',strtotime('24 hours')),
-                'allowed_domains'=>['infomaniak.ch','other.ch'],
-                'restricted_domains'=>['notthisone.ch','neither.ch']
+                'window' => 3600// validity in seconds : 1 hour, default is 1800
+                , 'strategy' => 'SINGLE'//  strategy:DASH|HLS|BEST|SINGLE => single for /_single_/ links, hls for /_hls_/ manifest links ... default is HLS
+                /*
+                , 'allowed_domains' => ['https://infomaniak.ch', 'http://other.ch']
+                , 'restricted_domains' => ['http://win.ch', 'http://orange.ch']
+                ,'attempts' => 5 // Number of allowed hits until token expires
+                , 'ip'=>'127.0.0.1'// v4 adress, but one day its going to be ipv6, so you'll have to catch your user ipv4 or ipv6 using ajax requests : https://ipv4.infomaniak.com/ip.php , https://www.infomaniak.com/ip.php might return ipv6 if available , if both respond ipv4 its safe , yet the server only resolves as ipv4, but might resolve adresses as ipv6 in the future
+                // validity here starts in the future, for 12 hours
+                 ,'start_time'=>date('Y-m-d H:i:s',strtotime('12 hours')), 'end_time'=>date('Y-m-d H:i:s',strtotime('24 hours'))//will be valid for 1 hour once consumed starting in 12 hours and ending in 24 hours in theses domains
+                */
             ];
 
         $post = [];// default parameters
-        /**
-         * options dans le body du post
-         * strategy:DASH|HLS|BEST|SINGLE
-         * start_time:2022-01-01 00:00:00   , if not specified = start time is now
-         * end_time:2032-01-01 00:00:00     , if not specified = +30minutes
-         * window:86000 ( how much seconds the token is valid if end time omited, default is 30 min ( 1800 seconds ) )
-         *
-         * ip : 127.0.0.1
-         * $post = ['ip' => $ip]; # /!\ Might not work depending if the client ISP returns IP adress as v6 or dynamic  : aka a different ip than the one you got
-         *
-         * allowed_domains:['infomaniak.ch','other.ch']
-         * restricted_domains:['notthisone.ch','neither.ch']
-         *
-         * $post = ['allowed_domains' => ['yourdomain.com']]; # /!\ Works only using the infomaniak player via en embed link
-         */
 
         $options = [CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiToken, 'Content-Type: application/json'], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => $apiUrl . '/share/' . $_POST['getToken4share'] . '/token', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => json_encode($post)];
         die('{"token":"' . json_decode(curlRequest($options), true)['data'] . '"}');
