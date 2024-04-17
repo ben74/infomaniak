@@ -1,16 +1,48 @@
 <?php
-//upload a distant media ( by url ) into this folder'
-$channelId=10000;
-$folder='1jhvl2...mca';
-$filePath='/chemindufichier.mp4';
-$nomDuFichier='nomDuFichier';
-$token='a.....z';// à récupérer ici : https://manager.infomaniak.com/v3/ng/accounts/token/list
+/*
+ * https://raw.githubusercontent.com/ben74/infomaniak/main/upload.php
+ * More complete api usage : https://raw.githubusercontent.com/ben74/infomaniak/main/apiVod.php
+ * usage : uploads a distant media ( by url ) into this folder'
+*/
+if('variables to fill for your personnal api usage'){
+    $channelId=10000;
+    $folderIdentifier='1jhvl2...mca';
 
-$post = ['folder' => $folder, 'name' => 'videoName', 'file' => new \CURLFile($filePath, '', $nomDuFichier)];
+    $filePath='/Users/JohnDoe/file.mp4';
+    $fileName='MediaName';
 
-$contents = json_decode(curlRequest( [CURLOPT_TIMEOUT => 99999/* larger timeout for large files */, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $token, 'User-Agent: client', 'Content-Type: multipart/form-data'/*,'Digest: sha256='.$sha256ofTheFile*/], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => 'https://api.infomaniak.com/1/vod/channel/' . $channelId . '/upload', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post]),true);
-$uploadedMediaId = $contents['data']['id'];
-echo "\nUpload ok, media id is : " . $uploadedMediaId;
+    $videoUrl = 'https://domain.ch/externalPublicAccessibleVideo.mp4';
+
+    $token='a.....z';// <== create a vod token here : https://manager.infomaniak.com/v3/ng/accounts/token/list
+}
+
+try {
+    if ('    >> upload an external self hosted video    ') {
+        $post = ['folder' => $folderIdentifier, 'filename' => $fileName, 'url' => $videoUrl];
+    } elseif ('     or a locally stored one ?    ') {
+        $post = ['folder' => $folderIdentifier, 'name' => $fileName, 'file' => new \CURLFile($filePath, '', $fileName)];
+    }
+
+
+    $contents = json_decode(curlRequest([CURLOPT_TIMEOUT => 99999/* larger timeout for large files */, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $token, 'User-Agent: client', 'Content-Type: multipart/form-data'/*,'Digest: sha256='.$sha256ofTheFile*/], CURLOPT_RETURNTRANSFER => true, CURLOPT_URL => 'https://api.infomaniak.com/1/vod/channel/' . $channelId . '/upload', CURLOPT_POST => 1, CURLOPT_POSTFIELDS => $post]), true);
+    $uploadedMediaId = $contents['data']['id'];
+    echo "\nUpload ok, media id is : " . $uploadedMediaId;
+
+
+} catch (\throwable $e) {
+    echo $e->getMessage();
+}
+
+
+
+
+
+
+
+
+
+
+
 
 function curlRequest($options)
 {
@@ -49,12 +81,13 @@ function curlRequest($options)
 
 return;?>
 
-en ligne de commandes
+
+As commandline :
 
 channelId=10000;
 folderUuid=1jhvl2...mca;
 filePath=/chemindufichier.mp4;
 nomDuFichier=nomDuFichier;
-token=a.....z;# à récupérer ici : https://manager.infomaniak.com/v3/ng/accounts/token/list
+token=a.....z;
 
-curl --progress-bar -v --http1.1 -kL -H 'Content-Type: multipart/form-data' -H "Authorization: Bearer $token" https://api.infomaniak.com/1/vod/channel/$channelId/upload -F "file=@$filePath" -F "folder=$folderUuid" -F "name=$nomDuFichier";
+curl --progress-bar -v --http1.1 -kL -H 'Content-Type: multipart/form-data' -H "Authorization: Bearer $token" https://api.infomaniak.com/1/vod/channel/$channelId/upload -F "file=@$filePath" -F "folder=$folderIdentifierUuid" -F "name=$nomDuFichier";
